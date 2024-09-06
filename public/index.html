@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Region Sales Calculation</title>
+</head>
+<body>
+    <h1>Sales Calculation for Regions</h1>
+    
+    <!-- Form to upload the CSV file -->
+    <form id="upload-form" method="POST">
+        <label for="csvFile">Upload CSV file with Region and Total Sales:</label><br>
+        <input type="file" id="csvFile" name="csvFile" accept=".csv" required><br><br>
+        
+        <label for="chequesInput">Enter the number of cheques for each region (comma-separated):</label><br>
+        <input type="text" id="chequesInput" name="chequesInput" placeholder="e.g., 3, 4" required><br><br>
+        
+        <input type="submit" value="Calculate">
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const resultDiv = document.getElementById('result');
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('csvFile');
+            const chequesInput = document.getElementById('chequesInput').value;
+
+            // Ensure a file is uploaded
+            if (fileInput.files.length === 0) {
+                alert('Please upload a CSV file.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const csvData = event.target.result;
+
+                // Send CSV data and cheques input to the server
+                fetch('/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        csvData,
+                        chequesInput
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    } else {
+                        throw new Error('Error generating Excel file.');
+                    }
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(new Blob([blob]));
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'region_sales_output.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('There was an error generating the Excel file.');
+                });
+            };
+
+            reader.readAsText(file);
+        });
+    </script>
+</body>
+</html>
